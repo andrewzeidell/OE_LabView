@@ -1,0 +1,35 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: capwind - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\RDKISI~1.COM\LOCALS~1\Temp\RSP74.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /Fp".\Debug/capwind.pch" /YX /Fo".\Debug/" /Fd".\Debug/" /FD /c 
+"C:\Projects\Thesis\Lv_vfw\source\capwind.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\RDKISI~1.COM\LOCALS~1\Temp\RSP74.tmp" 
+Creating temporary file "C:\DOCUME~1\RDKISI~1.COM\LOCALS~1\Temp\RSP75.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib vfw32.lib libcmt.lib /nologo /entry:"DllEntryPoint" /subsystem:windows /dll /pdb:none /debug /machine:I386 /nodefaultlib /out:"..\..\Lv_vfw/capwind.dll" /implib:"..\..\Lv_vfw/capwind.lib" 
+.\Debug\capwind.obj
+.\Debug\dib.obj
+.\Debug\capwind.res
+]
+Creating command line "link.exe @C:\DOCUME~1\RDKISI~1.COM\LOCALS~1\Temp\RSP75.tmp"
+<h3>Output Window</h3>
+Compiling...
+capwind.cpp
+Linking...
+   Creating library ..\..\Lv_vfw/capwind.lib and object ..\..\Lv_vfw/capwind.exp
+
+
+
+<h3>Results</h3>
+capwind.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

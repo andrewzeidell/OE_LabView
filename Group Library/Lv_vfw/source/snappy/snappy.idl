@@ -1,0 +1,947 @@
+/*
+ * $Workfile: snappy.idl $
+ *
+ * $Header: /Snappy2/Developer Samples/snappy.idl 1     1/20/97 12:32p Apabon $
+ *
+ * PRELIMINARY - ALL SPECIFICATIONS SUBJECT TO CHANGE
+ *
+ * Copyright (c) 1996 Play, Inc
+ */
+
+import "wtypes.idl";
+import "unknwn.idl";
+
+// Snappy specific HRESULT error codes
+cpp_quote("#define SNAPERR_BUSY                            0xE80A0001")
+cpp_quote("#define SNAPERR_NOT_FOUND                       0xE80A0002")
+cpp_quote("#define SNAPERR_INVALID_BUFFER                  0xE80A0003")
+cpp_quote("#define SNAPERR_FILE_INVALID                    0xE80A0004")
+cpp_quote("#define SNAPERR_NOT_INITIALIZED                 0xE80A0005")
+cpp_quote("#define SNAPERR_LPT_PORT_NOT_AVAILABLE          0xE80A0006")
+cpp_quote("#define SNAPERR_SETTINGS_CHANGED_WHILE_SNAPPING 0xE80A0007")
+cpp_quote("#define SNAPERR_INVALID_POINTER                 0xE80A0008")
+cpp_quote("#define SNAPERR_ABORT_CALLED_FROM_WORKER_THREAD 0xE80A0009")
+cpp_quote("#define SNAPERR_PREVIEW_TIMEOUT                 0xE80A000A")
+cpp_quote("#define SNAPERR_BUSY_STARTING_PREVIEW           0xE80A000B")
+
+// forward references
+interface ISnappyAdviseSync;
+interface ISnappyPreview;
+
+/******************************************************************************
+ *
+ *	ISnappy
+ *
+ *	Basic Snappy "Acquire Picture" interface
+ *
+ *****************************************************************************/
+[
+  object,
+  local,
+  uuid(441958E0-A822-11cf-B908-0000B4681EAD),
+  pointer_default(unique)
+]
+
+
+interface ISnappy : IUnknown
+{
+
+
+	/*=========================================================================
+	SetAdvise - Sets an optional AdviseSync interface to be used to notify
+				snap progress, when snap is complete, and/or errors.
+
+	Parameters:
+		pNotify - ptr to the interface to call for notification.
+				  may be NULL, if so, calls that use Advise will not return
+				  until they are complete.
+	-------------------------------------------------------------------------*/
+	HRESULT SetAdvise([in] ISnappyAdviseSync* pNotify);
+
+
+	/*=========================================================================
+	Snap -	Snap a Picture now (using current settings). process it with the
+			current process settings (set with the ISnappyProcess interface),
+			and	create a DIB.
+
+	Parameters:
+		hPackedDIB - Handle of DIB to Snap into.  May be NULL
+
+	Notes:
+		If an hPackedDIB is provided and it is not adaquate (width, height,
+		etc.) E_BADARG will be returned.
+
+        If the Snappy hardware is busy snappying SNAPERR_BUSY is returned.
+
+		If hPackedDIB is NULL, a Packed DIB is allocated and returned as a
+		parameter of ISnappyAdviseSync's OnDIBReady(). It is up to the caller
+		to free the memory. An Advise notification interface must have been
+		previously defined (with SetAdvise) in order to be notified when the
+		DIB is ready. See ISnappyAdviseSync for more info.
+	-------------------------------------------------------------------------*/
+	HRESULT Snap([in] HGLOBAL hPackedDIB);
+
+
+	/*=========================================================================
+	SnapToUnprocessedData - Snap data now (using current settings)
+
+	Notes:
+		An Advise notification interface must have been previously defined
+		(with SetAdvise) in order to be notified when the UnprocessedData is
+		ready.
+	-------------------------------------------------------------------------*/
+	HRESULT SnapToUnprocessedData();
+
+
+	/*=========================================================================
+	Abort - Abort Snapping
+	-------------------------------------------------------------------------*/
+	HRESULT Abort();
+
+
+	typedef enum tagSnapMode {
+		Moving,			// 1 video field
+		Still,			// 1 field, looked at twice to get better color
+		HighQuality,	// 2 fields (frame), looked at twice (full color frame)
+		HighestQuality	// Special 35ns mode (requires time-based input)
+	} ESnapMode;
+
+	/*=========================================================================
+	GetSnapMode - Get the current SnapMode
+
+	Parameters:
+		pSnapMode	- pointer to the SnapMode var that will be set
+	-------------------------------------------------------------------------*/
+	HRESULT GetSnapMode([out] ESnapMode* pSnapMode);
+
+
+	/*=========================================================================
+	SetSnapMode - Set the current SnapMode
+
+	Parameters:
+		eSnapMode	- The SnapMode var to be used
+	Notes:
+		If eSnapMode is HighestQuality, the InputSourceType is assumed to be a
+		Camera (time-based) input.
+	-------------------------------------------------------------------------*/
+	HRESULT SetSnapMode([in] ESnapMode eSnapMode);
+
+
+	/*=========================================================================
+	IsSourceCamera - Get current Camera vs. Tape setting
+
+	Parameters:
+		pbCamera	- ptr to var to be set to TRUE if Camera input
+					  FALSE if not.
+	-------------------------------------------------------------------------*/
+	HRESULT IsSourceCamera([out] BOOL* pbCamera);
+
+
+	/*=========================================================================
+	SetInputSource - Set the current input source
+
+	Parameters:
+		bCamera		- if TRUE, sets time-based (camera) input
+					  otherwise, sets tape intput.
+	-------------------------------------------------------------------------*/
+	HRESULT SetInputSource([in] BOOL bCamera);
+
+
+	/*=========================================================================
+	IsSourceColor - Get current Color vs. B&W setting
+
+	Parameters:
+		pbColor		- ptr to var that will be set TRUE if color input,
+					  FALSE if B&W
+	-------------------------------------------------------------------------*/
+	HRESULT IsSourceColor([out] BOOL* pbColor);
+
+
+	/*=========================================================================
+	SetSourceColor - Set the current input type
+
+	Parameters:
+		bColor		- if TRUE, sets to Color input,
+					  otherwise B&W input
+	-------------------------------------------------------------------------*/
+	HRESULT SetSourceColor([in] BOOL bColor);
+
+	/*=========================================================================
+	IsSourceNegative - Get current Normal vs. Negative setting
+
+	Parameters:
+		pbNegative	- ptr to var that will be set TRUE if negative input,
+					  FALSE if Normal
+	-------------------------------------------------------------------------*/
+	HRESULT IsSourceNegative([out] BOOL* pbNegative);
+
+
+	/*=========================================================================
+	SetSourceNegative - Set the current negative input option
+
+	Parameters:
+		bNegative	- if TRUE, sets to negative input,
+					  otherwise normal input
+	-------------------------------------------------------------------------*/
+	HRESULT SetSourceNegative([in] BOOL bNegative);
+
+
+	/*=========================================================================
+	SaveCurrentSettingsAsDefault - Sets the current SnapMode, InputSource,
+								   and SourceType as the default in the system
+								   registry. (??? user or system)
+	-------------------------------------------------------------------------*/
+	HRESULT SaveCurrentSettingsAsDefault();
+
+
+	/*=========================================================================
+	GetDefaultSettings - Get the default SnapMode, InputSource, and
+						 SourceType from the system registry.
+	-------------------------------------------------------------------------*/
+	HRESULT GetDefaultSettings();
+}
+
+/******************************************************************************
+ *
+ *	ISnappyAdviseSync
+ *
+ *	Notification interface for Snapping
+ *
+ *****************************************************************************/
+[
+  object,
+  local,
+  uuid(441958E1-A822-11cf-B908-0000B4681EAD),
+  pointer_default(unique)
+]
+
+
+interface ISnappyAdviseSync : IUnknown
+{
+
+	/*=========================================================================
+	OnDIBReady - a Processed DIB is ready
+
+	Parameters:
+		hPackedDIB - handle to a packed DIB (BITMAPINFOHEADER & bits)
+	-------------------------------------------------------------------------*/
+	HRESULT OnDIBReady([in] HGLOBAL hPackedDIB);
+
+
+	/*=========================================================================
+	OnDataReady - Snapped Data is ready to be processed
+
+	Note:
+		Use GetSnappyData() to retrieve a copy of the data
+	-------------------------------------------------------------------------*/
+	HRESULT OnDataReady();
+
+
+	/*=========================================================================
+	OnFieldSnapped - 1 field of video was just "snapped"
+	-------------------------------------------------------------------------*/
+	HRESULT OnFieldSnapped();
+
+
+	/*=========================================================================
+	OnLineProcessed - a line of SnappyData has been processed
+
+	Parameters:
+		nLine - current line
+		BYTE* - ptr to line of 24-bit RGB triples.
+	-------------------------------------------------------------------------*/
+	HRESULT OnLineProcessed([in] WORD nLine, [in] BYTE* pBits);
+
+
+	/*=========================================================================
+	OnReadyToSnap - Snappy is powered up and ready to capture video
+	-------------------------------------------------------------------------*/
+	HRESULT OnReadyToSnap();
+
+
+	/*=========================================================================
+	OnPowerChanged - Snappy turned on or off
+
+	Parameters:
+		bPower - TRUE if power is now on
+				 FALSE if off
+	-------------------------------------------------------------------------*/
+	HRESULT OnPowerChanged([in] BOOL bPower);
+
+
+	/*=========================================================================
+	OnVideoThruChanged - Snappy Termination
+
+	Parameters:
+		bTerminated - TRUE if Terminated (not Video Thru)
+					  FALSE if Unterminated (Video Thru)
+	-------------------------------------------------------------------------*/
+	HRESULT OnVideoThruChanged([in] BOOL bTerminated);
+
+
+	/*=========================================================================
+	OnPreviewImageReady - a Preview image is ready to be displayed
+
+	Parameters:
+		hPackedDIB - a 256 color Packed DIB of a 160 x 120 preview image
+        pPreview - ptr to an ISnappyPreview interface.  This is needed so that
+                   a call to pPreview->UnlockPreviewImage() can be made
+                   when the hPackedDIB has been used, so that the memory can
+                   be used for future previews.
+
+    Notes:
+        pPreview->UnlockPreviewImage() must be called when the hPackedDIB
+        has been used and can be made available for continued previewing, or
+        the Previewing will stop.
+	-------------------------------------------------------------------------*/
+	HRESULT OnPreviewImageReady([in] HGLOBAL hPackedDIB, 
+                                [in] ISnappyPreview* pPreview);
+
+
+	/*=========================================================================
+	OnLowBatteryChanged - The State of Snappy's voltage has changed
+
+	Parameters:
+		bLow - TRUE if Battery is Low
+			   FALSE if not
+	-------------------------------------------------------------------------*/
+	HRESULT OnLowBatteryChanged([in] BOOL bLow);
+
+
+	/*=========================================================================
+	OnHotVideoChanged - The State of Snappy's Video signal legallity has
+						changed.
+
+	Parameters:
+		bHot - TRUE if Video is hot (Signal too high)
+			   FALSE if not
+	-------------------------------------------------------------------------*/
+	HRESULT OnHotVideoChanged([in] BOOL bHot);
+
+
+	/*=========================================================================
+	OnVideoAvailableChanged - The State of the input video has changed
+
+	Parameters:
+		bVideoAvailable - TRUE if Video is available
+						  FALSE if not
+	-------------------------------------------------------------------------*/
+	HRESULT OnVideoAvailableChanged([in] BOOL bVideoAvailable);
+
+        /*=========================================================================
+        OnError - An error occurred
+
+	Parameters:
+                eErrorNum - A number specifying the type of warning
+                eCheckpoint - A number specifying the code location
+
+        -------------------------------------------------------------------------*/
+        HRESULT OnError([in] int nErrorNum, int nCheckPoint);
+
+        typedef enum tagSnappyWarning {
+		SW_VideoLevelLow,	// Video signal is not usable (double terminated?)
+		SW_NotCamera		// Camera mode was asked for, but the video is not
+							//	time-based.
+	} ESnappyWarning;
+
+        /*=========================================================================
+	OnWarning - Something unexpected happened
+
+	Parameters:
+                eWaningNum - an ESnappyWarning number specifying the type of warning
+	Notes:
+		Clients should responed to the call with one of the following HRESULT
+		values:
+		// E_ABORT = ABORT
+		// S_FALSE = RETRY
+		// S_OK or E_NOTIMPL = CONTINUE
+	-------------------------------------------------------------------------*/
+	HRESULT OnWarning([in] ESnappyWarning eWaningNum);
+
+	typedef enum tagSnappyPhase {
+		SP_Acquiring,
+		SP_Analyzing
+	} ESnappyPhase;
+
+        /*=========================================================================
+	OnStatusUpdate - progress indication
+
+	Parameters:
+		ePhaseNum - indicates which processing step snappy is working on
+		nValue - the current val (use nValue / (nTotal-1) to calc percent complete)
+		nTotal - the total number of steps to complete.
+	-------------------------------------------------------------------------*/
+	HRESULT OnStatusUpdate([in] ESnappyPhase ePhaseNum,
+		[in] WORD nValue, [in] WORD nTotal);
+}
+
+/******************************************************************************
+ *
+ *	ISnappyPreview
+ *
+ *	Snappy Preview Stream interface
+ *
+ *****************************************************************************/
+[
+  object,
+  local,
+  uuid(441958E2-A822-11cf-B908-0000B4681EAD),
+  pointer_default(unique)
+]
+
+interface ISnappyPreview : IUnknown
+{
+	/*=========================================================================
+	SetAdvise - Sets an AdviseSync interface to be used to notify
+				when an image is available, and/or errors.
+
+	Parameters:
+		pNotify - ptr to the interface to call for notification.
+	-------------------------------------------------------------------------*/
+	HRESULT SetAdvise([in] ISnappyAdviseSync* pNotify);
+
+	/*=========================================================================
+	AllocPreviewDIB - Allocates a packed DIB that can be used for previewing.
+
+	-------------------------------------------------------------------------*/
+	HRESULT AllocPreviewDIB([out] HGLOBAL* phPackedDIB);
+
+	/*=========================================================================
+	FreePreviewDIB - Frees a packed DIB allocated with AllocPreviewDIB
+
+	-------------------------------------------------------------------------*/
+	HRESULT FreePreviewDIB([in] HGLOBAL hPackedDIB);
+
+	/*=========================================================================
+	SetPreviewDIB - Assigns the DIB used by preview
+
+	-------------------------------------------------------------------------*/
+	HRESULT SetPreviewDIB([in] HGLOBAL hPackedDIB);
+
+
+	/*=========================================================================
+	StartPreviewing - Begin Previewing
+
+	Notes:
+		SetAdvise must have been called, so you can be notified when images
+		are available.
+	-------------------------------------------------------------------------*/
+	HRESULT StartPreviewing();
+
+	/*=========================================================================
+	UnlockPreviewImage - Allows Preview to continue previewing.
+
+	Notes:
+		Call this from an implementation of OnPreviewImageReady
+	-------------------------------------------------------------------------*/
+	HRESULT UnlockPreviewImage();
+
+
+	/*=========================================================================
+	Abort - Stops Previewing
+	-------------------------------------------------------------------------*/
+	HRESULT Abort();
+
+}
+
+/******************************************************************************
+ *
+ *	ISnappyProcess
+ *
+ *	Snappy Data Process interface
+ *
+ *****************************************************************************/
+[
+  object,
+  local,
+  uuid(441958E3-A822-11cf-B908-0000B4681EAD),
+  pointer_default(unique)
+]
+
+interface ISnappyProcess : IUnknown
+{
+	/*=========================================================================
+	SetAdvise - Sets an AdviseSync interface to be used to notify
+				when an image is available, and/or errors.
+
+	Parameters:
+		pNotify - ptr to the interface to call for notification.
+	-------------------------------------------------------------------------*/
+	HRESULT SetAdvise([in] ISnappyAdviseSync* pNotify);
+
+	/*=========================================================================
+	GetSnappyData - returns a copy of the current unprocessed data
+
+	Parameters:
+		ppData - ptr to an BYTE* pointer to be set to point to the data
+	-------------------------------------------------------------------------*/
+	HRESULT GetSnappyData([in] [out] BYTE** ppData);
+
+	/*=========================================================================
+	UseSnappyData - Loads Snappy data for processing to image
+
+	Parameters:
+		pData - ptr to data loaded by this call
+	-------------------------------------------------------------------------*/
+	HRESULT UseSnappyData([in] BYTE *pData);
+
+
+	/*=========================================================================
+	SaveSnappyData - Saves the "Unprocessed Snappy Data"
+
+	Parameters:
+		pFileName - ptr to name of file to create
+	-------------------------------------------------------------------------*/
+	HRESULT SaveSnappyData([in] LPCTSTR pFileName);
+
+
+	/*=========================================================================
+	LoadSnappyData - Load "Unprocessed Snappy Data" from a file
+
+	Parameters:
+		pFileName - ptr to name of file to load
+	-------------------------------------------------------------------------*/
+	HRESULT LoadSnappyData([in] LPCTSTR pFileName);
+
+
+	/*=========================================================================
+	ProcessSnappyData
+
+	Notes:
+		SetAdvise must have been called, so you can be notified when images
+		are available.
+	-------------------------------------------------------------------------*/
+	HRESULT ProcessSnappyData();
+
+
+	/*=========================================================================
+	AllocProcessDIB - Allocates a packed DIB based on the current process
+					  width, height & bitdepth.  This DIB can be used with
+					  SetProcessDIB.
+	-------------------------------------------------------------------------*/
+	HRESULT AllocProcessDIB([out] HGLOBAL* phPackedDIB);
+
+
+	/*=========================================================================
+	FreeProcessDIB - Frees a packed DIB allocated with AllocProcessDIB
+	-------------------------------------------------------------------------*/
+	HRESULT FreeProcessDIB([in] HGLOBAL hPackedDIB);
+
+
+	/*=========================================================================
+	SetProcessDIB - Assigns the DIB to process into
+
+	-------------------------------------------------------------------------*/
+	HRESULT SetProcessDIB([in] HGLOBAL hPackedDIB);
+
+
+	/*=========================================================================
+	ProcessSnappyDataLine - Process one line of Snappy Data
+
+	pBits - ptr to line data to be filled out
+	nLine - The image line to be processed
+
+	Notes:
+		This routine processes only one line.  To process an entire image and
+		be notified when a line is ready, use ProcessSnappyData() instead.
+	-------------------------------------------------------------------------*/
+	HRESULT ProcessSnappyDataLine([in] WORD nLine, [in] BYTE* pBits);
+
+	/*=========================================================================
+    SetProcessSpeed - sets speed and quality of process step
+
+    Parameters:
+        bSpeed  - TRUE if fast (less quality) process is desired
+                - FALSE for normal (high quality) process
+	-------------------------------------------------------------------------*/
+    HRESULT SetProcessSpeed([in] BOOL bSpeed);
+
+	/*=========================================================================
+	Abort - Abort Processing SnappyData
+	-------------------------------------------------------------------------*/
+	HRESULT Abort();
+
+
+	/*=========================================================================
+	GetImageSize - get the final size of the next image to be processed
+
+	Parameters:
+		pnWidth		- ptr to word to use for pixelwidth
+		pnHeight	- ptr to word to use for pixelheight
+		pnBitDepth	- ptr to word to use for pixeldepth
+					  (i.e. 24 for true color)
+	-------------------------------------------------------------------------*/
+	HRESULT GetImageSize([out] WORD* pnWidth,
+					     [out] WORD* pnHeight,
+					     [out] WORD* pnBitDepth);
+
+
+	/*=========================================================================
+	SetImageSize - set the final size of the next image to be processed
+
+	Parameters:
+		nWidth		- pixelwidth
+		nHeight		- pixelheight
+		nBitDepth	- pixeldepth (i.e. 24 for true color)
+	-------------------------------------------------------------------------*/
+	HRESULT SetImageSize([in] WORD nWidth,
+						 [in] WORD nHeight,
+					     [in] WORD nBitDepth);
+
+
+	/*=========================================================================
+	GetSourceCropping - get the rectangle (in field coords) of the source video
+						to be used when processing
+
+	Parameters:
+		pnLeft		- ptr to word to use for left
+		pnTop		- ptr to word to use for top
+		pnRight		- ptr to word to use for right
+		pnBottom	- ptr to word to use for bottom
+	-------------------------------------------------------------------------*/
+	HRESULT GetSourceCropping([out] WORD* pnLeft,
+							  [out] WORD* pnTop,
+							  [out] WORD* pnRight,
+							  [out] WORD* pnBottom);
+
+
+	/*=========================================================================
+	SetSourceCropping - Set the rectangle (in field coords) of the source
+						video to use when processing
+
+	Parameters:
+		nLeft		- left
+		nTop		- top
+		nRight		- right
+		nBottom		- bottom
+	-------------------------------------------------------------------------*/
+	HRESULT SetSourceCropping([in] WORD nLeft,
+							  [in] WORD nTop,
+							  [in] WORD nRight,
+							  [in] WORD nBottom);
+
+
+	/*=========================================================================
+	GetMaxCropSize - Get the usable video field size
+
+	Parameters:
+		pnWidth		- ptr to word to use for width
+		pnHeight	- ptr to word to use for height
+	-------------------------------------------------------------------------*/
+	HRESULT GetMaxCropSize([out] WORD* pnWidth,
+						   [out] WORD* pnHeight);
+
+	/*=========================================================================
+	GetTint - Get the tint value to be used on next process
+
+	Parameters:
+		pnTint		- ptr to long to use for tint
+	-------------------------------------------------------------------------*/
+	HRESULT GetTint([out] long* pnTint);
+
+
+	/*=========================================================================
+	SetTint - Set the tint value to use for next process
+
+	Parameters:
+		nTint		- the Tint value
+	-------------------------------------------------------------------------*/
+	HRESULT SetTint([in] long nTint);
+
+
+	/*=========================================================================
+	GetRed - Get the Red value to be used on next process
+
+	Parameters:
+		pnRed		- ptr to long to use for Red
+	-------------------------------------------------------------------------*/
+	HRESULT GetRed([out] long* pnRed);
+
+
+	/*=========================================================================
+	SetRed - Set the Red value to use for next process
+
+	Parameters:
+		nRed		- the Red value
+	-------------------------------------------------------------------------*/
+	HRESULT SetRed([in] long nRed);
+
+
+	/*=========================================================================
+	GetGreen - Get the Green value to be used on next process
+
+	Parameters:
+		pnGreen		- ptr to long to use for Green
+	-------------------------------------------------------------------------*/
+	HRESULT GetGreen([out] long* pnGreen);
+
+
+	/*=========================================================================
+	SetGreen - Set the Green value to use for next process
+
+	Parameters:
+		nGreen		- the Green value
+	-------------------------------------------------------------------------*/
+	HRESULT SetGreen([in] long nGreen);
+
+
+	/*=========================================================================
+	GetBlue - Get the Blue value to be used on next process
+
+	Parameters:
+		pnBlue		- ptr to long to use for Blue
+	-------------------------------------------------------------------------*/
+	HRESULT GetBlue([out] long* pnBlue);
+
+
+	/*=========================================================================
+	SetBlue - Set the Blue value to use for next process
+
+	Parameters:
+		nBlue		- the Blue value
+	-------------------------------------------------------------------------*/
+	HRESULT SetBlue([in] long nBlue);
+
+
+	/*=========================================================================
+	GetSaturation - Gets the amount of Saturation (Color) to be used on next
+					process
+
+	Parameters:
+		pnSaturation	- ptr to long to use for Blue
+	-------------------------------------------------------------------------*/
+	HRESULT GetSaturation([out] long* pnSaturation);
+
+
+	/*=========================================================================
+	SetSaturation - Set the Saturation value to use for next process
+
+	Parameters:
+		nSaturation		- the Saturation value
+	-------------------------------------------------------------------------*/
+	HRESULT SetSaturation([in] long nSaturation);
+
+
+	/*=========================================================================
+	GetBrightness - Get the amount of Birghtness to be used on next process.
+
+	Parameters:
+		pnBrightness	- ptr to long to use for Brightness
+	-------------------------------------------------------------------------*/
+	HRESULT GetBrightness([out] long* pnBrightness);
+
+
+	/*=========================================================================
+	SetBrightness - Set the Brightness value to use for next process
+
+	Parameters:
+		nBrightness		- the Brightness value
+	-------------------------------------------------------------------------*/
+	HRESULT SetBrightness([in] long nBrightness);
+
+
+	/*=========================================================================
+	GetContrast - Get the amount of Contrast to be used on next process.
+
+	Parameters:
+		pnContrast		- ptr to long to use for Contrast
+	-------------------------------------------------------------------------*/
+	HRESULT GetContrast([out] long* pnContrast);
+
+
+	/*=========================================================================
+	SetContrast - Set the Contrast value to use for next process
+
+	Parameters:
+		nContrast	- the Contrast value
+	-------------------------------------------------------------------------*/
+	HRESULT SetContrast([in] long nContrast);
+
+
+	/*=========================================================================
+	GetGamma - Get the amount of Gamma (Picture) to be used on next process.
+
+	Parameters:
+		pnGamma	- ptr to long to use for Gamma
+	-------------------------------------------------------------------------*/
+	HRESULT GetGamma([out] long* pnGamma);
+
+
+	/*=========================================================================
+	SetGamma - Set the Gamma value to use for next process
+
+	Parameters:
+		nGamma		- the Gamma value
+	-------------------------------------------------------------------------*/
+	HRESULT SetGamma([in] long nGamma);
+
+
+	/*=========================================================================
+	GetSharpness - Get the amount of Sharpness to be used on next process.
+
+	Parameters:
+		pnSharpness	- ptr to long to use for Sharpness
+	-------------------------------------------------------------------------*/
+	HRESULT GetSharpness([out] long* pnSharpness);
+
+
+	/*=========================================================================
+	SetSharpness - Set the Sharpness value to use for next process
+
+	Parameters:
+		nSharpness	- the Sharpness value
+	-------------------------------------------------------------------------*/
+	HRESULT SetSharpness([in] long nSharpness);
+
+	/*=========================================================================
+	SaveCurrentProcessSettingsAsDefault - Sets the current process settings
+										  (Tint, Sharpnes, image size, etc.) as
+										  the default
+	-------------------------------------------------------------------------*/
+	HRESULT SaveCurrentProcessSettingsAsDefault();
+
+
+	/*=========================================================================
+	GetDefaultProcessSettings - Get the default process settings (Tint, Sharpnes,
+								image size, etc.) from the system registry.
+	-------------------------------------------------------------------------*/
+	HRESULT GetDefaultProcessSettings();
+
+	/*=========================================================================
+	CanProcess - determines if snappy data is able to be processed with
+                 the current settings
+	Parameters:
+        pbProcessAllowed - set to TURE if process can occur.
+	-------------------------------------------------------------------------*/
+	HRESULT CanProcess([out] BOOL* pbProcessAllowed);
+}
+
+/******************************************************************************
+ *
+ *	ISnappyHardware
+ *
+ *	Snappy Hardware Status interface
+ *
+ *****************************************************************************/
+[
+  object,
+  local,
+  uuid(441958E4-A822-11cf-B908-0000B4681EAD),
+  pointer_default(unique)
+]
+
+interface ISnappyHardware : IUnknown
+{
+	/*=========================================================================
+	SetAdvise - Sets an AdviseSync interface to be used to notify
+				when the hardware state changes or, and/or errors.
+
+	Parameters:
+		pNotify - ptr to the interface to call for notification.
+	-------------------------------------------------------------------------*/
+	HRESULT SetAdvise([in] ISnappyAdviseSync* pNotify);
+
+
+	/*=========================================================================
+	GetLPTPort - get the current LPT Port
+
+	Parameters:
+		pnPortNum - the LPT port Snappy is currently assigned to
+	Notes:
+		If No LPT port has been assigned this call will return E_???
+	-------------------------------------------------------------------------*/
+	HRESULT GetLPTPort([out] WORD* pnPortNum);
+
+
+	/*=========================================================================
+	SetLPTPort - sets the LPT Port for Snappy to use
+
+	Parameters:
+		nPortNum - set the LPT port for Snappy to use
+	-------------------------------------------------------------------------*/
+	HRESULT SetLPTPort([in] WORD nPortNum);
+
+
+        /*=========================================================================
+        GetNumPorts - get the number of available parallel ports.
+
+	Parameters:
+                pnNumPorts - the number of available parallel ports
+	Notes:
+                Always returns S_OK
+	-------------------------------------------------------------------------*/
+        HRESULT GetNumPorts([out] unsigned long* pnNumPorts);
+
+
+        /*=========================================================================
+	PrepareToSnap - Turn Snappy on so that next "snap" occurrs as fast as
+	                possible.
+	-------------------------------------------------------------------------*/
+	HRESULT PrepareToSnap();
+
+
+	/*=========================================================================
+	IsTerminated - Determines if Snappy is terminating the video source
+				  (i.e. Video Thru not being used)
+
+	Parameters:
+		pbTerminated - pointer to BOOL, set TRUE if terminated,
+					   FALSE if not
+	-------------------------------------------------------------------------*/
+	HRESULT IsTerminated([out] BOOL* pbTerminated);
+
+
+	/*=========================================================================
+	SetTermination - Set whether Video Thru is terminated or not
+
+	Parameters:
+		bTerminate	- TRUE if termination is to be set
+					  FALSE otherwise
+	-------------------------------------------------------------------------*/
+	HRESULT SetTermination([in] BOOL bTerminate);
+
+
+	/*=========================================================================
+	IsSVideo - Determines if Snappy is set to SVideo Mode
+
+	Parameters:
+		pbSVideo - pointer to BOOL, set TRUE if SVideo is set,
+				   FALSE if not
+	-------------------------------------------------------------------------*/
+	HRESULT IsSVideo([out] BOOL* pbSVideo);
+
+
+	/*=========================================================================
+	SetSVideo - Set whether SVideo mode is used
+
+	Parameters:
+		bSVideo	- TRUE if SVideo is to be set
+				  FALSE otherwise
+	-------------------------------------------------------------------------*/
+	HRESULT SetSVideo([in] BOOL bSVideo);
+
+
+	/*=========================================================================
+	IsPowerSaver - Determines if Snappy is set to PowerSaver Mode
+
+	Parameters:
+		pbPowerSaver - pointer to BOOL, set TRUE if PowerSaver is set,
+				       FALSE if not
+	Notes:
+		PowerSaver mode causes Snappy to turn off after Snapping and Preview
+		mode to stop if left alone.
+	-------------------------------------------------------------------------*/
+	HRESULT IsPowerSaver([out] BOOL* pbPowerSaver);
+
+
+	/*=========================================================================
+	PowerSaver - Set whether PowerSaver mode is used
+
+	Parameters:
+		bPowerSaver	- TRUE if PowerSaver is to be set
+					  FALSE otherwise
+	-------------------------------------------------------------------------*/
+	HRESULT PowerSaver([in] BOOL bPowerSaver);
+
+}
+

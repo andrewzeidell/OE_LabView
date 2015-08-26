@@ -1,0 +1,35 @@
+Mega Awesome Log
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+Items to Fix:
+ - Discard of first file + up spazzes
+ 
+ Future Revisions:
+ - Add linear slider into linear transfer graph tab
+ - Add linear slider into linear log-transfer graph tab
+ - Show line for Off-Current selection based on the program's algorithm
+ - Disable closing of program after export
+ - Comment editing/viewing
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+08/10/2012 - File: MC_8_10_12a_PD
+ - Made vi backwards compatible with old header format (it now changes old to new style)
+
+07/31/2012 - File: MC_7_31_12a_JW
+ - Fixed long name and unit naming during Origin Export
+ - Added automatic scaling of x-axis during Origin Export based on user choice
+
+07/30/2012 - File: MC_7_30_12a_JW
+ - Added Linear/Saturation tabs to plots for user to select option
+
+07/26/2012 - File: MC_7_26_12a_JW
+ - Created log
+ - Fixed update issue between switching devices
+ - Fixed temperature update by using direc wireing in each event case vs local variables
+
+07/25/2012 - File: MC_7_25_12a_JW
+ - Created log
+ - Fixed update issue between switching devices
+ - Fixed temperature update by using direc wireing in each event case vs local variables
+	

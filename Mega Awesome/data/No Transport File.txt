@@ -1,0 +1,14 @@
+Time Stamp:		
+Date Created:	
+Material:	
+Solvent:	
+Concentration (mM/L):	
+Method:	
+Dielectric (nm):	
+Treatment:	 
+Comments:	
+Index:	
+Length (um):	
+Width (um):	
+Vg=	
+Vd	Id	Id	Id	Id	Id	Id	Id
